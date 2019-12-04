@@ -3,40 +3,6 @@ import socket
 import hashlib
 
 
-#checking connection protocol
-def protocol(url):
-    
-    if url[0:5] == "https":
-        #score += 1
-        return 1
-    else:
-        return 0
-#checking possition of "//"
-def slash(url):
-    
-    if url[6:8] == "//":
-        #score += 1
-        return 1 
-    else:
-        return 0
-#checking usage of "@"
-def at(url):
-    
-    if url.find != "@":
-        #score  += 1
-        return 1
-
-    else:
-        return 0
-
-#checking usage of cyrillic letters
-def spell(url,url1):
-
-    if url == url1:
-        return 1
-    else:
-        return 0
-
 #fetching expiry date and serial number
 def valid(url):
     try:
@@ -96,85 +62,218 @@ def cert_hash(url):
     except:
         return 0
 
-if __name__ == "__main__":
-    url = "https://paytm.com"
-    url1 = "https://paytm.com"
+def certi(url):
+    hostname = (url.split("https://"))[1].split("/")[0]
+    ctx = ssl.create_default_context()
+    s = ctx.wrap_socket(socket.socket(), server_hostname=hostname)
+    s.connect((hostname, 443))
+    cert = s.getpeercert()
+
+    subject = dict(x[0] for x in cert['subject'])
+    issued_to = subject['commonName']
+    issuer = dict(x[0] for x in cert['issuer'])
+    issued_by = issuer['commonName']
+    issue_date = cert['notBefore']
+    ca_issuer = cert['caIssuers']
+    return issued_to, issued_by, issue_date
+    #[0]= issued to which domain
+    #[1] = issued by which certificate provider
+    #[2] = issued on which date
     
 
+import re 
+
+url = "рaytm.com"
+def has_cyrillic(text):
+    return bool(re.search('[а-яА-Я]', text))
 
 
-    #print(str(valid(url)[0]))
-
+if __name__ == "__main__":
+    
+    url = "https://рaytm.com"  #original url
+    url1 = "https://paytm.com"  #url fetched by chrome ext
+    
     count = 0
 
     #1
-    protocol(url)
-    print(protocol(url))
-    count += 1
+    #checking if cyrillic letters are used or not
+    if has_cyrillic(url) == True:
+        print(1)
+        count += 1
+        check0 = 1
+    else:
+        print(0)
+        check0 = 0
+
+    #print(str(valid(url)[0]))
+
+    
+    #1 
+    #checking connection protocol
+    if url[0:5] == "https":
+        #score += 1
+        print(1)
+        count += 1
+        check1 = 1
+    else:
+        print(0)
+        check1 = 0
+
 
     #2
-    spell(url,url1)
-    print(spell(url,url1))
-    count += 1
-    
+    #checking spelling of the url
+    if url == url1:
+        print(1)
+        count += 1
+        check2 = 1
+    else:
+        print(0)
+        check2 = 0
     #3
-    at(url)
-    print(at(url))
-    count += 1
+    #checking usage of @ symbol
+    if url.find != "@":
+        print(1)
+        count += 1
+        check3 = 1
+        
+    else:
+        print(0)
+        check3 = 0
+
 
     #4
+    #checking issued date
+    try:
+        if str(certi(url)[2]) == str(certi(url1)[2]):
+            print(1)
+            count +=1
+            check4 = 1
+        else:
+            print(0)
+            check4 = 0
+            None
+    except:
+        print(0)
+        check4 = 0
+        None
+
+
+    #5
     #checking expiry date of url
     try:
 
         if str(valid(url)[0]) == str(valid(url1)[0]):
             print(1)
             count += 1
+            check5 = 1
         else:
             print(0)
+            check5 = 0
             None
     except:
         print(0)
+        check5 = 0
         None
     
-    #5
+    #6
     #checking serial number of url
     try:
         if valid(url)[1] == valid(url1)[1]:
             print(1)
             count += 1
+            check6 = 1
         else:
             print(0)
+            check6 = 0
             None
     except:
         print(0)    
+        check6 = 0
         None
     
-    #6
+    #7
     #checking sha1 of url
     try:
         if cert_hash(url)[0] == cert_hash(url1)[0]:
             print(1)
             count += 1
+            check7 = 1
         else:
             print(0)
+            check7 = 0
             None
     except:
         print(0)
+        check7 = 0
         None
     
     
-    #7
+    #8
     #checking sha256 of url
     try:
         if cert_hash(url)[1] == cert_hash(url1)[1]:
             print(1)
             count += 1
+            check8 = 1
             None
         else:
             print(0)
+            check8 = 0
             None
     except:
         print(0)    
+        check8 = 0
         None
 
+
+    #9
+    #checking which certificate provider provided the ssl certificate
+    try:
+        if str(certi(url)[1]) == str(certi(url1)[1]):
+            print(1)
+            count += 1
+            check9 = 1
+        else:
+            print(0)
+            check9 = 0
+            None
+    except:
+        print(0)
+        check9 = 0
+        None
+    
+
+    #10
+    #checking which domain was exactly issued this particular certificate
+    try:
+        if str(certi(url)[0]) == str(certi(url1)[0]):
+            print(1)
+            count += 1
+            check10 = 1
+        else:
+            print(0)
+            check10 = 0
+            None
+    except:
+        print(0)
+        check10 = 0
+        None
+
+
     print(count)
+
+    if count == 11:
+        print("everything is ok")
+    else:
+        print("something phishy is going on!!")
+
+    check_dict = {'check_0': check0, 'check_1': check1, 'check_2': check2, 'check_3': check3, 'check_4': check4, 'check_5': check5, 'check_6': check6, 'check_7': check7, 'check_8': check8, 'check_9': check9, 'check_10': check10,}
+
+    info_dict = {'issued_date': certi(url1)[2], 'expiry_date': valid(url1)[0], 'serial_number': valid(url1)[1], 'sha1': cert_hash(url1)[0], 'sha256': cert_hash(url1)[1], 'issuer': certi(url1)[1], 'issued_to': certi(url1)[0]}
+    
+    print(info_dict)
+
+    print(check_dict)
+
+
+    
